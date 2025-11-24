@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+aqicn:
+  base-url: "https://api.waqi.info"
+  token: "${AQICN_TOKEN:368d2694bac90d668b9df340b6aae2e02a7b20e9}"
+
+cache:
+  ttl-seconds: 300
+  max-entries: 100
