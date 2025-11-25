@@ -1,28 +1,24 @@
-import { FormEvent, useState } from "react";
+import React, { FormEvent, useState } from "react";
 
-interface Props{
-    onSearch: (city: string) => void;
-}
+export default function SearchBar({ onSearch }: { onSearch: (city: string) => void }) {
+  const [q, setQ] = useState("");
 
-export default function SearchBar({onSearch} : Props){
-    const [value, setValue] = useState("");
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    const value = q.trim();
+    if (!value) return;
+    onSearch(value);
+    setQ("");
+  }
 
-    function handleSubmit(e: FormEvent){
-        e.preventDefault();
-        if(!value.trim()){
-            return;
-        }
-        onSearch(value.trim());
-    }
-    return (
-        <form className="search-bar" onSubmit={handleSubmit}>
-            <input
-                type="text"
-                placeholder="Enter city name to find Air Quality"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-            />
-            <button type="submit">Search</button>
-        </form>
-    );
+  return (
+    <form onSubmit={submit} className="search-bar">
+      <input
+        placeholder="Enter city to see Air Quality"
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+      />
+      <button type="submit">Search</button>
+    </form>
+  );
 }

@@ -28,7 +28,17 @@ export async function fetchAirQuality(city: string): Promise<AirQualityResponse>
     const result = await fetch(`${BASE_URL}/api/air-quality?city=${encodeURIComponent(city)}`);
 
     if(!result.ok){
-        throw new Error("City not found or server error");
+        const text = await result.text();
+        throw new Error(`Server returned ${result.status}: ${text}`);
     }
     return result.json();
+}
+
+export async function fetchAirQualityByCoords(lat: number, lng: number): Promise<AirQualityResponse> {
+  const res = await fetch(`${BASE_URL}/api/air-quality/by-coords?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Server returned ${res.status}: ${txt}`);
+  }
+  return res.json();
 }

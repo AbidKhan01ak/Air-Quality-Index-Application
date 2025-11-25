@@ -1,101 +1,196 @@
+@import "https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css";
+
 :root {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background-color: #0f172a;
-  color: #e5e7eb;
+  --bg: #020617;             
+  --bg-soft: #020617;         
+  --card: #0b1220;           
+  --surface: #020617;        
+  --border-subtle: rgba(148, 163, 184, 0.25);
+  --muted: #9ca3af;
+  --accent: #0ea5e9;      
+  --accent-soft: rgba(14, 165, 233, 0.12);
+
+  --text: #e5e7eb;
+  --text-strong: #f9fafb;
+  font-family: "Lato", sans-serif;
+  color-scheme: dark;
+}
+::-webkit-scrollbar {
+  display: none;
 }
 
 body {
   margin: 0;
+  background: radial-gradient(circle at top, #020617 0%, #020617 40%, #020617 100%);
+  color: var(--text);
+  height: 100vh;
 }
 
-.app-root {
-  min-height: 100vh;
+.app-root.two-column {
   display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
+  height: 100vh;
+}
+.left-pane {
+  width: 40%;
+  min-width: 320px;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+  background: linear-gradient(180deg, #020617 0%, #020617 100%);
 }
 
-.app-header {
-  text-align: center;
-  margin-bottom: 1.5rem;
+.right-pane {
+  width: 60%;
+  height: 100%;
+  position: relative;
+  background: #020617;
 }
 
-.app-header h1 {
-  margin-bottom: 0.25rem;
+.left-pane h1 {
+  margin: 0 0 6px 0;
+  font-size: 1.6rem;
+  color: var(--text-strong);
+  letter-spacing: 0.09em;
+  padding-left: 20%;
+  font-weight: 900;
 }
 
-.app-main {
-  flex: 1;
-}
-
-.app-footer {
-  text-align: center;
-  margin-top: 2rem;
-  opacity: 0.7;
-  font-size: 0.8rem;
-}
-
-/* Search bar */
 .search-bar {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 8px;
+  margin: 8px 0 14px 0;
 }
 
 .search-bar input {
   flex: 1;
-  padding: 0.6rem 0.8rem;
+  padding: 10px 12px;
   border-radius: 999px;
-  border: none;
+  border: 1px solid var(--border-subtle);
   outline: none;
+  background: #020617;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.search-bar input::placeholder {
+  color: #6b7280;
+}
+
+.search-bar input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(14, 165, 233, 0.4);
 }
 
 .search-bar button {
+  padding: 10px 16px;
   border-radius: 999px;
   border: none;
-  padding: 0.6rem 1.2rem;
-  cursor: pointer;
+  background: var(--accent);
+  color: #020617;
   font-weight: 600;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.2s ease;
+  box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
 }
 
-/* AQ card */
+.search-bar button:hover {
+  background: #38bdf8;
+  transform: translateY(-1px);
+}
+
+.search-bar button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.35);
+}
+
+.left-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: calc(100% - 72px);
+}
+
+.card-area {
+  margin-top: 4px;
+}
+
+.history {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+.history h3 {
+  margin: 0 0 6px 0;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.history ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.link-btn {
+  background: rgba(15, 23, 42, 0.5);
+  color: var(--text);
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+.link-btn:hover {
+  background: rgba(15, 23, 42, 0.9);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+
 .aq-card {
-  background: #020617;
-  border-radius: 1rem;
-  padding: 1.2rem;
-  box-shadow: 0 20px 25px -5px #00000080;
+  background: var(--card);
+  padding: 14px;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--border-subtle);
 }
 
 .aq-summary {
   display: flex;
-  gap: 1rem;
+  gap: 14px;
   align-items: center;
-  margin-bottom: 1rem;
 }
 
 .aq-value {
-  width: 110px;
-  height: 110px;
-  border-radius: 999px;
+  width: 100px;
+  height: 100px;
+  border-radius: 30px;
   display: flex;
   flex-direction: column;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  color: #020617;
+  font-weight: 800;
+}
+
+.aq-number {
+  font-size: 22px;
+}
+
+.aq-label {
+  font-size: 12px;
   color: #020617;
   font-weight: 700;
 }
 
-.aq-number {
-  font-size: 1.8rem;
-}
-
-.aq-label {
-  font-size: 0.8rem;
-}
-
-/* AQ band colors */
 .aqi-good { background: #22c55e; }
 .aqi-moderate { background: #eab308; }
 .aqi-usg { background: #f97316; }
@@ -105,67 +200,93 @@ body {
 .aqi-unknown { background: #6b7280; }
 
 .aq-meta h2 {
-  margin: 0;
+  margin: 0 0 6px 0;
+  font-size: 1.05rem;
+  color: var(--text-strong);
+}
+
+.aq-meta p {
+  margin: 2px 0;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
 .badge {
-  display: inline-block;
-  margin-top: 0.3rem;
-  font-size: 0.7rem;
-  padding: 0.2rem 0.6rem;
+  background: var(--accent-soft);
+  border: 1px solid var(--accent);
+  padding: 4px 8px;
   border-radius: 999px;
-  border: 1px solid #22c55e;
-  color: #22c55e;
+  color: var(--accent);
+  font-size: 0.7rem;
 }
 
-/* Pollutants */
 .aq-pollutants h3 {
-  margin-bottom: 0.5rem;
+  margin: 10px 0 6px 0;
+  font-size: 0.9rem;
+  color: var(--text-strong);
 }
 
 .pollutant-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 6px;
 }
 
 .pollutant-badge {
-  border-radius: 0.5rem;
-  background: #020617;
-  border: 1px solid #1f2933;
-  padding: 0.4rem 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
 }
 
 .pollutant-label {
-  font-size: 0.75rem;
-  opacity: 0.8;
+  font-size: 20px;
+  color: var(--muted);
 }
 
 .pollutant-value {
   font-weight: 600;
+  font-size: 14px;
+  color: var(--text-strong);
 }
 
-/* Attributions */
 .aq-attributions h3 {
-  margin-top: 1rem;
+  margin: 10px 0 6px 0;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
 .aq-attributions ul {
-  margin: 0.3rem 0 0;
-  padding-left: 1.2rem;
+  margin: 0;
+  padding-left: 16px;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
 
-/* Loader & error */
+.leaflet-container { height: 100%; width: 100%; }
+.map-marker { display: inline-block; }
+
 .loader {
-  margin-top: 1rem;
+  padding: 8px;
+  font-size: 0.85rem;
+  color: var(--muted);
 }
 
-.error-banner {
-  margin-top: 1rem;
-  background: #b91c1c;
-  padding: 0.6rem 0.8rem;
-  border-radius: 0.6rem;
+.error {
+  color: #fecaca;
+  background: rgba(248, 113, 113, 0.12);
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(248, 113, 113, 0.35);
+  font-size: 0.8rem;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 22px;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px dashed rgba(148, 163, 184, 0.3);
+  font-size: 0.85rem;
 }
