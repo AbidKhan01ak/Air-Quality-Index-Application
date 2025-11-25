@@ -25,7 +25,7 @@ const BASE_URL = "http://localhost:8080";
 
 export async function fetchAirQuality(city: string): Promise<AirQualityResponse> {
 
-    const result = await fetch(`${BASE_URL}/api/air-quality?city=${encodeURIComponent(city)}`);
+    const result = await fetch(`${BASE_URL}/api/v1/air-quality?city=${encodeURIComponent(city)}`);
 
     if(!result.ok){
         const text = await result.text();
@@ -35,7 +35,7 @@ export async function fetchAirQuality(city: string): Promise<AirQualityResponse>
 }
 
 export async function fetchAirQualityByCoords(lat: number, lng: number): Promise<AirQualityResponse> {
-  const res = await fetch(`${BASE_URL}/api/air-quality/by-coords?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
+  const res = await fetch(`${BASE_URL}/api/v1/air-quality/by-coords?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
   if (!res.ok) {
     const txt = await res.text();
     throw new Error(`Server returned ${res.status}: ${txt}`);

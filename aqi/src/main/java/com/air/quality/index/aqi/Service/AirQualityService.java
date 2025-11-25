@@ -1,110 +1,113 @@
 package com.air.quality.index.aqi.Service;
 
 import com.air.quality.index.aqi.Cache.AirQualityCache;
+import com.air.quality.index.aqi.Client.AqicnClient;
 import com.air.quality.index.aqi.DTO.AirQualityResponse;
-import com.air.quality.index.aqi.DTO.aqicn.AqicnApiResponse;
+import com.air.quality.index.aqi.Exception.ExternalApiException;
+import com.air.quality.index.aqi.Exception.NotFoundException;
+import com.air.quality.index.aqi.Mapper.AirQualityMapper;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.ResponseEntity;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
 public class AirQualityService {
+    private static final Logger log = LoggerFactory.getLogger(AirQualityService.class);
 
     private final AirQualityCache cache;
+    private final AqicnClient aqicnClient;
+    private final AirQualityMapper mapper;
 
-    @Value("${aqicn.base-url}")
-    private String baseUrl;
+    public AirQualityResponse getByCity(String city) {
+        validateCity(city);
+        String key = normalizeCityKey(city);
+        // unified fetch-flow
+        return fetchAndCache(key, () -> {
+            var apiResp = aqicnClient.fetchByCity(city.trim());
+            return validateAndMap(apiResp);
+        });
+    }
 
-    @Value("${aqicn.token}")
-    private String token;
+    public AirQualityResponse getByCoords(double lat, double lng) {
+        validateCoords(lat, lng);
+        // Round coords to 3 decimal places for caching stability (~100m)
+        String roundedLat = round(lat, 3);
+        String roundedLng = round(lng, 3);
+        String key = String.format("coords:%s,%s", roundedLat, roundedLng);
 
-    private final RestTemplate restTemplate = new RestTemplate();
+        return fetchAndCache(key, () -> {
+            var apiResp = aqicnClient.fetchByCoords(lat, lng);
+            return validateAndMap(apiResp);
+        });
+    }
 
-    public AirQualityResponse getAirQualityByCity(String city){
-        String cityKey = city.trim().toLowerCase();
 
-        AirQualityResponse cached = cache.get(cityKey);
 
-        if(cached != null){
+    /* ---------- Internal helpers ---------- */
+
+    private AirQualityResponse fetchAndCache(String cacheKey, SupplierWithException<AirQualityResponse> supplier) {
+        AirQualityResponse cached = cache.get(cacheKey);
+        if (cached != null) {
             cached.setFromCache(true);
+            log.debug("Cache hit for {}", cacheKey);
             return cached;
         }
 
-        String url = String.format("%s/feed/%s/?token=%s", baseUrl, cityKey, token);
-
-        ResponseEntity<AqicnApiResponse> responseEntity = restTemplate.getForEntity(url, AqicnApiResponse.class);
-
-        AqicnApiResponse apiResponse = responseEntity.getBody();
-
-        if(apiResponse == null || !"ok".equalsIgnoreCase(apiResponse.getStatus())){
-            throw new RuntimeException("City not found or AQICN error");
+        try {
+            AirQualityResponse resp = supplier.get();
+            resp.setFromCache(false);
+            cache.put(cacheKey, resp);
+            return resp;
+        } catch (NotFoundException nf) {
+            throw nf; // bubble up so controller can translate to 404
+        } catch (ExternalApiException ex) {
+            log.error("External API error while fetching {}: {}", cacheKey, ex.getMessage());
+            throw ex;
+        } catch (Exception ex) {
+            log.error("Unexpected error while fetching {}: {}", cacheKey, ex.getMessage(), ex);
+            throw new ExternalApiException("Unexpected error while fetching AQI", ex);
         }
-
-        AirQualityResponse mapped = mapToDto(apiResponse);
-        mapped.setFromCache(false);
-        cache.put(cityKey, mapped);
-
-        return mapped;
     }
-    private AirQualityResponse mapToDto(AqicnApiResponse api) {
-        AqicnApiResponse.DataNode data = api.getData();
 
-        double lat = 0;
-        double lng = 0;
-        if (data.getCity() != null && data.getCity().getGeo() != null
-                && data.getCity().getGeo().size() == 2) {
-            lat = data.getCity().getGeo().get(0);
-            lng = data.getCity().getGeo().get(1);
+    private AirQualityResponse validateAndMap(com.air.quality.index.aqi.DTO.aqicn.AqicnApiResponse apiResp) {
+        if (apiResp == null || !"ok".equalsIgnoreCase(apiResp.getStatus())) {
+            throw new NotFoundException("AQICN: data not found or status error");
         }
-
-        List<String> attributions = data.getAttributions() == null ? List.of() :
-                data.getAttributions().stream()
-                        .map(a -> a.getName() + (a.getUrl() != null ? " (" + a.getUrl() + ")" : ""))
-                        .collect(Collectors.toList());
-
-        Integer aqi = data.getAqi();
-        return AirQualityResponse.builder()
-                .cityName(data.getCity() != null ? data.getCity().getName() : "Unknown")
-                .latitude(lat)
-                .longitude(lng)
-                .aqi(aqi)
-                .aqiCategory(aqiCategory(aqi))
-                .dominantPollutant(data.getDominentpol())
-                .pm25(getIaqi(data, "pm25"))
-                .pm10(getIaqi(data, "pm10"))
-                .o3(getIaqi(data, "o3"))
-                .no2(getIaqi(data, "no2"))
-                .so2(getIaqi(data, "so2"))
-                .co(getIaqi(data, "co"))
-                .localTime(data.getTime() != null ? data.getTime().getS() : null)
-                .timezone(data.getTime() != null ? data.getTime().getTz() : null)
-                .attributions(attributions)
-                .fetchedAt(Instant.now())
-                .build();
+        var dto = mapper.toDto(apiResp);
+        if (dto == null) throw new ExternalApiException("Failed to map AQICN response");
+        return dto;
     }
 
-    private Double getIaqi(AqicnApiResponse.DataNode data, String key) {
-        if (data.getIaqi() == null) return null;
-        AqicnApiResponse.IaqiValue v = data.getIaqi().get(key);
-        return v != null ? v.getV() : null;
+    private void validateCity(String city) {
+        if (city == null || city.trim().isEmpty()) {
+            throw new IllegalArgumentException("city must be provided");
+        }
     }
 
-    private String aqiCategory(Integer aqi) {
-        if (aqi == null) return "Unknown";
-        if (aqi <= 50) return "Good";
-        if (aqi <= 100) return "Moderate";
-        if (aqi <= 150) return "Unhealthy for Sensitive Groups";
-        if (aqi <= 200) return "Unhealthy";
-        if (aqi <= 300) return "Very Unhealthy";
-        return "Hazardous";
+    private void validateCoords(double lat, double lng) {
+        if (Double.isNaN(lat) || Double.isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+            throw new IllegalArgumentException("invalid coordinates");
+        }
     }
 
+    private String normalizeCityKey(String city) {
+        return city.trim().toLowerCase();
+    }
+
+    private String round(double value, int decimals) {
+        BigDecimal bd = BigDecimal.valueOf(value);
+        bd = bd.setScale(decimals, RoundingMode.HALF_UP);
+        return bd.toPlainString();
+    }
+
+    @FunctionalInterface
+    private interface SupplierWithException<T> {
+        T get() throws Exception;
+    }
 }
